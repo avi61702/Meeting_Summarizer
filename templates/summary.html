@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summary for {{ job.name }}</title>
+    <!-- Load Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom style to handle pre-formatted text wrapping */
+        .transcript-box {
+            white-space: pre-wrap; /* Keeps formatting but allows wrapping */
+            word-wrap: break-word; /* Ensures long words don't overflow */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8">
+    <div class="max-w-5xl mx-auto">
+        <header class="text-center py-6 border-b border-gray-200 mb-6">
+            <h1 class="text-3xl font-extrabold text-gray-900">Summary for: <span class="text-indigo-600">{{ job.name }}</span></h1>
+            <p class="text-sm text-gray-500 mt-1">Job ID: {{ job_id }} | Status: <span class="font-semibold text-green-600">{{ job.status }}</span></p>
+            <a href="{{ url_for('index') }}" class="mt-4 inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-800 transition">
+                &larr; Back to Upload
+            </a>
+        </header>
+
+        {% if job.status == 'FAILED' %}
+            <!-- Failure State -->
+            <div class="p-6 bg-red-100 border border-red-400 text-red-700 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-2">Processing Failed!</h2>
+                <p>There was an error during transcription or summarization. Please try a different audio file.</p>
+                <p class="mt-2 text-sm font-mono">Error Details: {{ job.error | default('Unknown error.') }}</p>
+            </div>
+        {% elif job.status == 'COMPLETED' %}
+            <!-- Success State -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Main Content (2/3 width on desktop) -->
+                <div class="lg:col-span-2 space-y-8">
+                    
+                    <!-- Summary -->
+                    <div class="bg-white p-6 rounded-xl shadow-xl border-t-4 border-indigo-500">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-3 flex items-center">
+                            <span class="mr-2 text-3xl">📝</span> Meeting Summary
+                        </h2>
+                        <div class="prose max-w-none text-gray-700">
+                            <!-- Using safe filter in case the LLM introduces markdown formatting -->
+                            <p>{{ job.summary | default('No summary available.') }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Key Decisions -->
+                    <div class="bg-white p-6 rounded-xl shadow-xl border-t-4 border-purple-500">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-3 flex items-center">
+                            <span class="mr-2 text-3xl">✅</span> Key Decisions
+                        </h2>
+                        <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                            {% for decision in job.key_decisions %}
+                                <li class="font-medium text-base">{{ decision }}</li>
+                            {% endfor %}
+                            {% if not job.key_decisions %}
+                                <li>No major decisions were explicitly recorded.</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <!-- Full Transcript -->
+                    <div class="bg-white p-6 rounded-xl shadow-xl border-t-4 border-gray-400">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-3 flex items-center">
+                            <span class="mr-2 text-3xl">📜</span> Full Transcript
+                        </h2>
+                        <!-- Using <pre> with custom class for readable, formatted transcript -->
+                        <pre class="transcript-box bg-gray-50 p-4 rounded-lg text-sm text-gray-700 overflow-auto border border-gray-200">
+{{ job.transcript | default('Transcript not saved.') }}
+                        </pre>
+                    </div>
+                </div>
+                
+                <!-- Action Items (1/3 width on desktop) -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white p-6 rounded-xl shadow-xl border-t-4 border-yellow-500 sticky top-8">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+                            <span class="mr-2 text-3xl">🎯</span> Action Items
+                        </h2>
+                        <div class="space-y-4">
+                            {% for action in job.action_items %}
+                                <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                                    <p class="font-semibold text-gray-800">{{ action.task }}</p>
+                                    <p class="text-sm text-gray-600 mt-1">
+                                        <span class="font-medium text-indigo-600">Assignee:</span> {{ action.assigned_to }}
+                                    </p>
+                                    <p class="text-xs text-gray-500">
+                                        <span class="font-medium text-yellow-700">Due:</span> {{ action.due_date }}
+                                    </p>
+                                </div>
+                            {% endfor %}
+                            {% if not job.action_items %}
+                                <p class="text-gray-500">No specific action items were identified by the LLM.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

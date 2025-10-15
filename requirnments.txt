@@ -1,0 +1,5 @@
+Flask
+Werkzeug
+assemblyai
+requests
+google-generativeai

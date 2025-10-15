@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Summarizer</title>
+    <!-- Load Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font */
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 sm:p-8">
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center py-6">
+            <h1 class="text-4xl font-extrabold text-indigo-700">Meeting Summarizer 🎙️</h1>
+            <p class="text-lg text-gray-500 mt-2">Upload your audio to generate a transcript, summary, and action items.</p>
+        </header>
+
+        <!-- Upload Card -->
+        <div class="bg-white p-6 sm:p-8 rounded-xl shadow-2xl border border-indigo-100">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload Meeting Audio</h2>
+            
+            <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data" class="space-y-4" id="uploadForm">
+                <div id="uploadBox" class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-indigo-500 transition duration-300">
+                    <!-- The input is hidden but its area is clickable due to absolute positioning -->
+                    <input type="file" name="audio_file" id="audio_file" accept=".mp3, .m4a, .wav, .ogg" required class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    <div class="text-center" id="uploadBoxContent">
+                        <!-- SVG icon for file upload -->
+                        <svg id="uploadIcon" class="mx-auto h-12 w-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 014 4v2a4 4 0 01-1.88 3.327L12 21M12 21v-8m0 0l-3.5 3.5m3.5-3.5l3.5 3.5"></path></svg>
+                        <p id="uploadText" class="mt-2 text-sm text-gray-600">
+                            <span class="font-medium text-indigo-600">Click to upload</span> or drag and drop
+                        </p>
+                        <p class="text-xs text-gray-500">MP3, M4A, WAV, OGG (Max 16MB)</p>
+                    </div>
+                </div>
+                
+                <button type="submit" id="processBtn" class="w-full py-3 bg-indigo-600 text-white font-bold text-lg rounded-lg shadow-md hover:bg-indigo-700 transition duration-300 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50">
+                    Process Meeting
+                </button>
+            </form>
+            <script>
+                const fileInput = document.getElementById('audio_file');
+                const processBtn = document.getElementById('processBtn');
+                const uploadBox = document.getElementById('uploadBox');
+                const uploadBoxContent = document.getElementById('uploadBoxContent');
+                const uploadIcon = document.getElementById('uploadIcon');
+                const uploadText = document.getElementById('uploadText');
+
+                fileInput.addEventListener('change', function() {
+                    if (fileInput.files.length > 0) {
+                        // Change box to uploaded state
+                        uploadBox.classList.remove('border-gray-300', 'hover:border-indigo-500');
+                        uploadBox.classList.add('border-green-500', 'bg-green-50');
+                        uploadBoxContent.innerHTML = `
+                            <svg class="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <p class="mt-2 text-lg font-semibold text-green-700">File uploaded!</p>
+                            <p class="text-xs text-gray-500">Ready to process.</p>
+                        `;
+                        processBtn.disabled = false;
+                        processBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        // Revert box to default state
+                        uploadBox.classList.remove('border-green-500', 'bg-green-50');
+                        uploadBox.classList.add('border-gray-300', 'hover:border-indigo-500');
+                        uploadBoxContent.innerHTML = `
+                            <svg id="uploadIcon" class="mx-auto h-12 w-12 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 014 4v2a4 4 0 01-1.88 3.327L12 21M12 21v-8m0 0l-3.5 3.5m3.5-3.5l3.5 3.5"></path></svg>
+                            <p id="uploadText" class="mt-2 text-sm text-gray-600"><span class="font-medium text-indigo-600">Click to upload</span> or drag and drop</p>
+                            <p class="text-xs text-gray-500">MP3, M4A, WAV, OGG (Max 16MB)</p>
+                        `;
+                        processBtn.disabled = true;
+                        processBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    }
+                });
+                // Optionally, disable the button until a file is selected
+                processBtn.disabled = true;
+                processBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+                // Show loading overlay on form submit
+                document.getElementById('uploadForm').addEventListener('submit', function(e) {
+                    document.getElementById('loadingOverlay').classList.remove('hidden');
+                });
+            </script>
+            <p class="mt-4 text-xs text-red-500 text-center">
+                ⚠️ **Note:** This is a synchronous process. The browser will wait until processing is complete.
+            </p>
+        </div>
+
+        <!-- Recent Jobs List (from RESULTS_DB) -->
+        <div class="mt-10">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Recent Summaries</h2>
+            <div class="space-y-3">
+                {% if jobs %}
+                    {% for job in jobs %}
+                        <a href="{{ url_for('view_summary', job_id=job.id) }}" class="block p-4 bg-white rounded-lg shadow-md hover:bg-indigo-50 transition duration-150">
+                            <p class="font-medium text-indigo-600">{{ job.name }}</p>
+                            <p class="text-sm text-gray-500">ID: {{ job.id }}</p>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-gray-500 p-4 bg-white rounded-lg shadow-md text-center">No summaries processed yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-80 flex flex-col items-center justify-center z-50 hidden">
+        <svg class="animate-spin h-16 w-16 text-indigo-600 mb-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+        </svg>
+        <h2 class="text-2xl font-bold text-indigo-700 mb-2">Processing Meeting...</h2>
+        <p class="text-gray-600">This may take up to a minute. Please wait while we transcribe and summarize your audio.</p>
+    </div>
+</body>
+</html>
