@@ -3,7 +3,7 @@
 A web application to upload meeting audio files, transcribe them, and generate structured summaries and action items using AssemblyAI and Google Gemini APIs.
 
 ## Demo
-![Demo]()
+![Demo](./meeting_summarizer.gif)
 
 ## Features
 - Upload audio files (mp3, m4a, wav, ogg)
